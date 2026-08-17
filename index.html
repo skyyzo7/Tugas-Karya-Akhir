@@ -1,0 +1,117 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manajer Self-Reward</title>
+    <style>
+        :root {
+            --primary: #1F4E5B;
+            --secondary: #E8F4F8;
+            --danger: #e74c3c;
+            --success: #27ae60;
+            --warning: #f1c40f;
+            --text: #333;
+        }
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; color: var(--text); padding: 20px; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1, h2 { color: var(--primary); }
+        .card { padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ddd; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        input, select, button { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+        button { background: var(--primary); color: white; cursor: pointer; border: none; font-weight: bold; }
+        button:hover { opacity: 0.9; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background: var(--secondary); }
+        #status-badge { padding: 10px; border-radius: 5px; text-align: center; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Manajer Keuangan Self-Reward</h1>
+    
+    <div class="card">
+        <h2>1. Profil Pengguna</h2>
+        <div class="grid">
+            <input type="text" id="nama" placeholder="Nama Lengkap">
+            <input type="number" id="gaji" placeholder="Gaji Bulanan (Rp)">
+            <input type="number" id="persen" placeholder="Persentase Self-Reward (%)">
+            <button onclick="simpanProfil()">Simpan Profil</button>
+        </div>
+        <p id="info-profil"></p>
+    </div>
+
+    <div class="card">
+        <h2>2. Ringkasan Budget</h2>
+        <div class="grid">
+            <div>Limit Self-Reward: <b id="limit-val">Rp 0</b></div>
+            <div>Sisa Kuota: <b id="sisa-val">Rp 0</b></div>
+        </div>
+        <div id="status-badge" style="margin-top:10px;">Status: -</div>
+    </div>
+
+    <div class="card">
+        <h2>3. Tambah Pengeluaran Self-Reward</h2>
+        <input type="text" id="desc" placeholder="Nama Barang/Jasa">
+        <input type="number" id="amount" placeholder="Harga (Rp)">
+        <button onclick="tambahPengeluaran()">Tambah Transaksi</button>
+    </div>
+
+    <table id="tabel-transaksi">
+        <thead>
+            <tr><th>Deskripsi</th><th>Harga</th><th>Aksi</th></tr>
+        </thead>
+        <tbody id="list-transaksi"></tbody>
+    </table>
+</div>
+
+<script>
+    let profil = JSON.parse(localStorage.getItem('profil')) || {};
+    let transaksi = JSON.parse(localStorage.getItem('transaksi')) || [];
+
+    function updateUI() {
+        document.getElementById('info-profil').innerText = profil.nama ? `Halo ${profil.nama}, Gaji: Rp${profil.gaji.toLocaleString()}` : 'Silakan atur profil Anda.';
+        const limit = profil.gaji * (profil.persen / 100);
+        const terpakai = transaksi.reduce((sum, t) => sum + t.amount, 0);
+        const sisa = limit - terpakai;
+
+        document.getElementById('limit-val').innerText = 'Rp ' + limit.toLocaleString();
+        document.getElementById('sisa-val').innerText = 'Rp ' + sisa.toLocaleString();
+        
+        const badge = document.getElementById('status-badge');
+        if (sisa < 0) { badge.innerText = 'OVERBUDGET 🔴'; badge.style.backgroundColor = 'var(--danger)'; badge.style.color = 'white'; }
+        else if (sisa < (limit * 0.2)) { badge.innerText = 'WASPADA 🟡'; badge.style.backgroundColor = 'var(--warning)'; }
+        else { badge.innerText = 'AMAN 🟢'; badge.style.backgroundColor = 'var(--success)'; badge.style.color = 'white'; }
+
+        const list = document.getElementById('list-transaksi');
+        list.innerHTML = '';
+        transaksi.forEach((t, index) => {
+            list.innerHTML += `<tr><td>${t.desc}</td><td>Rp ${t.amount.toLocaleString()}</td><td><button style="background:var(--danger)" onclick="hapus(${index})">Hapus</button></td></tr>`;
+        });
+    }
+
+    function simpanProfil() {
+        profil = { nama: document.getElementById('nama').value, gaji: parseFloat(document.getElementById('gaji').value), persen: parseFloat(document.getElementById('persen').value) };
+        localStorage.setItem('profil', JSON.stringify(profil));
+        updateUI();
+    }
+
+    function tambahPengeluaran() {
+        transaksi.push({ desc: document.getElementById('desc').value, amount: parseFloat(document.getElementById('amount').value) });
+        localStorage.setItem('transaksi', JSON.stringify(transaksi));
+        updateUI();
+    }
+
+    function hapus(index) {
+        transaksi.splice(index, 1);
+        localStorage.setItem('transaksi', JSON.stringify(transaksi));
+        updateUI();
+    }
+
+    updateUI();
+</script>
+</body>
+</html>
